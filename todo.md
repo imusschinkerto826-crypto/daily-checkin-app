@@ -68,3 +68,6 @@
   - 修复 Link 和 Button 嵌套导致的 DOM 结构问题
   - 抽取公共 getCurrentUser 函数到 utils/auth.ts
   - 重构所有路由文件使用公共工具函数
+
+## 版本同步
+- [x] 修复发布版本同步问题
