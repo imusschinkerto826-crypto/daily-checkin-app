@@ -25,6 +25,16 @@ const loginSchema = z.object({
   password: z.string().min(1, "请输入密码"),
 });
 
+// 修改密码输入验证
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "请输入当前密码"),
+  newPassword: z.string().min(6, "新密码至少6个字符").max(100, "新密码最多100个字符"),
+  confirmPassword: z.string().min(1, "请确认新密码"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "两次输入的密码不一致",
+  path: ["confirmPassword"],
+});
+
 /**
  * 生成 JWT Token
  */
@@ -49,6 +59,45 @@ export async function verifyToken(token: string): Promise<{ userId: number; user
   } catch {
     return null;
   }
+}
+
+/**
+ * 从请求中获取当前用户
+ */
+async function getCurrentUser(ctx: any) {
+  const cookies = ctx.req.headers.cookie || "";
+  const cookieMap = new Map(
+    cookies.split(";").map((c: string) => {
+      const [key, ...val] = c.trim().split("=");
+      return [key, val.join("=")];
+    })
+  );
+  const token = cookieMap.get(COOKIE_NAME);
+
+  if (!token) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "请先登录",
+    });
+  }
+
+  const payload = await verifyToken(token as string);
+  if (!payload) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "登录已过期，请重新登录",
+    });
+  }
+
+  const user = await db.getUserById(payload.userId);
+  if (!user) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "用户不存在",
+    });
+  }
+
+  return user;
 }
 
 export const authRouter = router({
@@ -186,4 +235,49 @@ export const authRouter = router({
     ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
     return { success: true };
   }),
+
+  /**
+   * 修改密码
+   */
+  changePassword: publicProcedure
+    .input(changePasswordSchema)
+    .mutation(async ({ input, ctx }) => {
+      // 获取当前用户
+      const user = await getCurrentUser(ctx);
+
+      // 验证当前密码
+      const isValid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+      if (!isValid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "当前密码错误",
+        });
+      }
+
+      // 检查新密码是否与当前密码相同
+      const isSamePassword = await bcrypt.compare(input.newPassword, user.passwordHash);
+      if (isSamePassword) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "新密码不能与当前密码相同",
+        });
+      }
+
+      // 哈希新密码
+      const newPasswordHash = await bcrypt.hash(input.newPassword, SALT_ROUNDS);
+
+      // 更新密码
+      const success = await db.updateUserPassword(user.id, newPasswordHash);
+      if (!success) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "密码修改失败，请重试",
+        });
+      }
+
+      return {
+        success: true,
+        message: "密码修改成功",
+      };
+    }),
 });

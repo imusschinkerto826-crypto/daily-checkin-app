@@ -59,6 +59,20 @@ export async function createUser(data: { username: string; passwordHash: string;
   return newUser;
 }
 
+/**
+ * 更新用户密码
+ */
+export async function updateUserPassword(userId: number, newPasswordHash: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const result = await db.update(users)
+    .set({ passwordHash: newPasswordHash })
+    .where(eq(users.id, userId));
+  
+  return (result as any).affectedRows > 0;
+}
+
 // ==================== 紧急联系人相关操作 ====================
 
 /**

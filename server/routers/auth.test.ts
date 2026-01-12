@@ -1,25 +1,44 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { appRouter } from "../routers";
 import type { TrpcContext } from "../_core/context";
+import { COOKIE_NAME } from "@shared/const";
 
 // Mock bcrypt
+const mockBcryptCompare = vi.fn();
+const mockBcryptHash = vi.fn().mockResolvedValue("$2b$10$newhashedpassword");
+
 vi.mock("bcrypt", () => ({
   default: {
-    hash: vi.fn().mockResolvedValue("$2b$10$hashedpassword"),
-    compare: vi.fn().mockImplementation((password: string, hash: string) => {
-      return Promise.resolve(password === "testpassword123");
-    }),
+    hash: (...args: any[]) => mockBcryptHash(...args),
+    compare: (...args: any[]) => mockBcryptCompare(...args),
   },
 }));
 
-// Mock db functions
-vi.mock("../db", () => ({
-  getUserByUsername: vi.fn(),
-  getUserById: vi.fn(),
-  createUser: vi.fn(),
+// Mock jose
+const mockJwtVerify = vi.fn();
+
+vi.mock("jose", () => ({
+  SignJWT: vi.fn().mockImplementation(() => ({
+    setProtectedHeader: vi.fn().mockReturnThis(),
+    setIssuedAt: vi.fn().mockReturnThis(),
+    setExpirationTime: vi.fn().mockReturnThis(),
+    sign: vi.fn().mockResolvedValue("mock-jwt-token"),
+  })),
+  jwtVerify: (...args: any[]) => mockJwtVerify(...args),
 }));
 
-import * as db from "../db";
+// Mock db functions
+const mockGetUserByUsername = vi.fn();
+const mockGetUserById = vi.fn();
+const mockCreateUser = vi.fn();
+const mockUpdateUserPassword = vi.fn();
+
+vi.mock("../db", () => ({
+  getUserByUsername: (...args: any[]) => mockGetUserByUsername(...args),
+  getUserById: (...args: any[]) => mockGetUserById(...args),
+  createUser: (...args: any[]) => mockCreateUser(...args),
+  updateUserPassword: (...args: any[]) => mockUpdateUserPassword(...args),
+}));
 
 type CookieCall = {
   name: string;
@@ -55,13 +74,16 @@ function createMockContext(cookieHeader?: string): { ctx: TrpcContext; cookies: 
 describe("auth.register", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockBcryptCompare.mockImplementation((password: string, hash: string) => {
+      return Promise.resolve(password === "testpassword123");
+    });
   });
 
   it("should register a new user successfully", async () => {
     const { ctx, cookies } = createMockContext();
     
-    vi.mocked(db.getUserByUsername).mockResolvedValue(undefined);
-    vi.mocked(db.createUser).mockResolvedValue({
+    mockGetUserByUsername.mockResolvedValue(undefined);
+    mockCreateUser.mockResolvedValue({
       id: 1,
       username: "testuser",
       email: "test@example.com",
@@ -86,7 +108,7 @@ describe("auth.register", () => {
   it("should reject duplicate username", async () => {
     const { ctx } = createMockContext();
     
-    vi.mocked(db.getUserByUsername).mockResolvedValue({
+    mockGetUserByUsername.mockResolvedValue({
       id: 1,
       username: "existinguser",
       email: null,
@@ -122,12 +144,15 @@ describe("auth.register", () => {
 describe("auth.login", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockBcryptCompare.mockImplementation((password: string, hash: string) => {
+      return Promise.resolve(password === "testpassword123");
+    });
   });
 
   it("should login successfully with correct credentials", async () => {
     const { ctx, cookies } = createMockContext();
     
-    vi.mocked(db.getUserByUsername).mockResolvedValue({
+    mockGetUserByUsername.mockResolvedValue({
       id: 1,
       username: "testuser",
       email: "test@example.com",
@@ -151,7 +176,7 @@ describe("auth.login", () => {
   it("should reject invalid username", async () => {
     const { ctx } = createMockContext();
     
-    vi.mocked(db.getUserByUsername).mockResolvedValue(undefined);
+    mockGetUserByUsername.mockResolvedValue(undefined);
 
     const caller = appRouter.createCaller(ctx);
     
@@ -166,7 +191,7 @@ describe("auth.login", () => {
   it("should reject wrong password", async () => {
     const { ctx } = createMockContext();
     
-    vi.mocked(db.getUserByUsername).mockResolvedValue({
+    mockGetUserByUsername.mockResolvedValue({
       id: 1,
       username: "testuser",
       email: null,
@@ -196,5 +221,133 @@ describe("auth.logout", () => {
 
     expect(result.success).toBe(true);
     expect(clearedCookies.length).toBe(1);
+  });
+});
+
+describe("auth.changePassword", () => {
+  const mockUser = {
+    id: 1,
+    username: "testuser",
+    email: "test@example.com",
+    passwordHash: "$2b$10$currenthashedpassword",
+    role: "user" as const,
+    reminderEnabled: false,
+    reminderEmail: null,
+    reminderHour: 8,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should change password successfully", async () => {
+    const { ctx } = createMockContext(`${COOKIE_NAME}=valid-token`);
+    
+    // Mock jwtVerify to return valid payload
+    mockJwtVerify.mockResolvedValue({
+      payload: { userId: 1, username: "testuser" },
+    });
+    mockGetUserById.mockResolvedValue(mockUser);
+    mockBcryptCompare
+      .mockResolvedValueOnce(true) // current password is correct
+      .mockResolvedValueOnce(false); // new password is different
+    mockUpdateUserPassword.mockResolvedValue(true);
+
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.auth.changePassword({
+      currentPassword: "currentpassword",
+      newPassword: "newpassword123",
+      confirmPassword: "newpassword123",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.message).toBe("密码修改成功");
+    expect(mockUpdateUserPassword).toHaveBeenCalledWith(1, "$2b$10$newhashedpassword");
+  });
+
+  it("should reject if current password is wrong", async () => {
+    const { ctx } = createMockContext(`${COOKIE_NAME}=valid-token`);
+    
+    mockJwtVerify.mockResolvedValue({
+      payload: { userId: 1, username: "testuser" },
+    });
+    mockGetUserById.mockResolvedValue(mockUser);
+    mockBcryptCompare.mockResolvedValue(false); // current password is wrong
+
+    const caller = appRouter.createCaller(ctx);
+    
+    await expect(
+      caller.auth.changePassword({
+        currentPassword: "wrongpassword",
+        newPassword: "newpassword123",
+        confirmPassword: "newpassword123",
+      })
+    ).rejects.toThrow("当前密码错误");
+  });
+
+  it("should reject if new password is same as current", async () => {
+    const { ctx } = createMockContext(`${COOKIE_NAME}=valid-token`);
+    
+    mockJwtVerify.mockResolvedValue({
+      payload: { userId: 1, username: "testuser" },
+    });
+    mockGetUserById.mockResolvedValue(mockUser);
+    mockBcryptCompare
+      .mockResolvedValueOnce(true) // current password is correct
+      .mockResolvedValueOnce(true); // new password is same as current
+
+    const caller = appRouter.createCaller(ctx);
+    
+    await expect(
+      caller.auth.changePassword({
+        currentPassword: "currentpassword",
+        newPassword: "currentpassword",
+        confirmPassword: "currentpassword",
+      })
+    ).rejects.toThrow("新密码不能与当前密码相同");
+  });
+
+  it("should reject if not authenticated", async () => {
+    const { ctx } = createMockContext(); // no cookie
+    
+    const caller = appRouter.createCaller(ctx);
+    
+    await expect(
+      caller.auth.changePassword({
+        currentPassword: "currentpassword",
+        newPassword: "newpassword123",
+        confirmPassword: "newpassword123",
+      })
+    ).rejects.toThrow("请先登录");
+  });
+
+  it("should validate password confirmation", async () => {
+    const { ctx } = createMockContext(`${COOKIE_NAME}=valid-token`);
+    
+    const caller = appRouter.createCaller(ctx);
+    
+    await expect(
+      caller.auth.changePassword({
+        currentPassword: "currentpassword",
+        newPassword: "newpassword123",
+        confirmPassword: "differentpassword",
+      })
+    ).rejects.toThrow();
+  });
+
+  it("should validate minimum password length", async () => {
+    const { ctx } = createMockContext(`${COOKIE_NAME}=valid-token`);
+    
+    const caller = appRouter.createCaller(ctx);
+    
+    await expect(
+      caller.auth.changePassword({
+        currentPassword: "currentpassword",
+        newPassword: "short",
+        confirmPassword: "short",
+      })
+    ).rejects.toThrow();
   });
 });
