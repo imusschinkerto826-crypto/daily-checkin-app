@@ -1,4 +1,4 @@
-import { int, mysqlTable, text, timestamp, varchar, uniqueIndex, index, mysqlEnum } from "drizzle-orm/mysql-core";
+import { int, mysqlTable, text, timestamp, varchar, uniqueIndex, index, mysqlEnum, boolean } from "drizzle-orm/mysql-core";
 
 /**
  * 用户表 - 自定义用户名/密码认证
@@ -13,6 +13,12 @@ export const users = mysqlTable("users", {
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   /** 用户角色 */
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  /** 是否启用签到提醒 */
+  reminderEnabled: boolean("reminder_enabled").default(false).notNull(),
+  /** 签到提醒邮箱 */
+  reminderEmail: varchar("reminder_email", { length: 255 }),
+  /** 签到提醒时间 (UTC 小时，0-23) */
+  reminderHour: int("reminder_hour").default(8),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });

@@ -114,6 +114,65 @@ export async function sendTestEmail(toEmail: string): Promise<boolean> {
 }
 
 /**
+ * 发送签到提醒邮件给用户
+ */
+export async function sendCheckInReminder(params: {
+  userName: string;
+  userEmail: string;
+}): Promise<boolean> {
+  const subject = "【签到提醒】记得今日签到哦！";
+  
+  const text = `亲爱的 ${params.userName}，
+
+这是您的每日签到提醒。
+
+请记得在今天完成签到，让关心您的人安心。
+
+---
+此邮件由每日签到应用自动发送，请勿直接回复。`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #3b82f6; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
+    .reminder-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
+    .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⏰ 签到提醒</h1>
+    </div>
+    <div class="content">
+      <p>亲爱的 <strong>${params.userName}</strong>，</p>
+      <div class="reminder-box">
+        <p style="font-size: 18px; margin: 0;">⏰ 记得今日签到哦！</p>
+      </div>
+      <p>请记得在今天完成签到，让关心您的人安心。</p>
+    </div>
+    <div class="footer">
+      <p>此邮件由每日签到应用自动发送，请勿直接回复。</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  return sendEmail({
+    to: params.userEmail,
+    subject,
+    text,
+    html,
+  });
+}
+
+/**
  * 发送未签到提醒邮件给紧急联系人
  */
 export async function sendMissedCheckInAlert(params: {

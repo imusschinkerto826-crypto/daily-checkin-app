@@ -6,6 +6,7 @@ import { authRouter } from "./routers/auth";
 import { checkInsRouter } from "./routers/checkins";
 import { contactsRouter } from "./routers/contacts";
 import { emailRouter } from "./routers/email";
+import { reminderRouter } from "./routers/reminder";
 
 export const appRouter = router({
   system: systemRouter,
@@ -21,6 +22,9 @@ export const appRouter = router({
   
   // 邮件功能
   email: emailRouter,
+  
+  // 签到提醒设置
+  reminder: reminderRouter,
 });
 
 export type AppRouter = typeof appRouter;

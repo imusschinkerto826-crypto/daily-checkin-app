@@ -293,3 +293,66 @@ export async function upsertUser(user: {
   // 此函数仅用于保持框架兼容性
   console.log("[Auth] OAuth upsertUser called but ignored - using custom auth");
 }
+
+
+// ==================== 签到提醒相关操作 ====================
+
+/**
+ * 更新用户的签到提醒设置
+ */
+export async function updateReminderSettings(userId: number, settings: {
+  reminderEnabled: boolean;
+  reminderEmail?: string | null;
+  reminderHour?: number;
+}): Promise<User | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  await db.update(users)
+    .set({
+      reminderEnabled: settings.reminderEnabled,
+      reminderEmail: settings.reminderEmail || null,
+      reminderHour: settings.reminderHour ?? 8,
+    })
+    .where(eq(users.id, userId));
+
+  return getUserById(userId);
+}
+
+/**
+ * 获取需要发送签到提醒的用户（指定小时）
+ * 返回启用了提醒、有提醒邮箱、且今天还没签到的用户
+ */
+export async function getUsersNeedingReminder(hour: number): Promise<User[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const today = getTodayUTC();
+
+  // 获取所有启用提醒且提醒时间匹配的用户
+  const usersWithReminder = await db.select()
+    .from(users)
+    .where(
+      and(
+        eq(users.reminderEnabled, true),
+        eq(users.reminderHour, hour)
+      )
+    );
+
+  // 过滤掉今天已经签到的用户
+  const result: User[] = [];
+  for (const user of usersWithReminder) {
+    if (!user.reminderEmail) continue;
+    
+    const todayCheckIn = await db.select()
+      .from(checkIns)
+      .where(and(eq(checkIns.userId, user.id), eq(checkIns.checkInDate, today)))
+      .limit(1);
+    
+    if (todayCheckIn.length === 0) {
+      result.push(user);
+    }
+  }
+
+  return result;
+}

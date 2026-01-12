@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, Calendar, Flame, Users, LogOut, Shield, Mail, Send } from "lucide-react";
+import { Loader2, CheckCircle2, Calendar, Flame, Users, LogOut, Shield, Mail, Send, Settings, Bell } from "lucide-react";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -90,6 +90,11 @@ export default function Dashboard() {
             <span className="text-sm text-muted-foreground">
               欢迎, <span className="font-medium text-foreground">{user?.username}</span>
             </span>
+            <Link href="/settings">
+              <Button variant="ghost" size="icon">
+                <Settings className="h-5 w-5" />
+              </Button>
+            </Link>
             <Button variant="ghost" size="sm" onClick={logout}>
               <LogOut className="h-4 w-4 mr-1" />
               登出
@@ -159,31 +164,45 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* 紧急联系人入口 */}
-          <Card className="shadow-lg">
-            <CardContent className="p-6">
-              <Link href="/contacts">
-                <Button variant="outline" className="w-full h-16 text-lg" asChild>
-                  <div className="flex items-center justify-center gap-3">
-                    <Users className="h-6 w-6" />
-                    <span>管理紧急联系人</span>
-                  </div>
-                </Button>
-              </Link>
-              <p className="text-sm text-muted-foreground text-center mt-3">
-                设置紧急联系人，当您未签到时，他们会收到提醒邮件
-              </p>
-            </CardContent>
-          </Card>
+          {/* 功能入口 */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* 紧急联系人入口 */}
+            <Card className="shadow-lg">
+              <CardContent className="p-4">
+                <Link href="/contacts">
+                  <Button variant="outline" className="w-full h-20 flex-col gap-2" asChild>
+                    <div>
+                      <Users className="h-6 w-6" />
+                      <span className="text-sm">紧急联系人</span>
+                    </div>
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* 签到提醒设置入口 */}
+            <Card className="shadow-lg">
+              <CardContent className="p-4">
+                <Link href="/settings">
+                  <Button variant="outline" className="w-full h-20 flex-col gap-2" asChild>
+                    <div>
+                      <Bell className="h-6 w-6" />
+                      <span className="text-sm">签到提醒</span>
+                    </div>
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* 测试邮件功能 */}
           <Card className="shadow-lg">
             <CardContent className="p-6">
               <Dialog open={isTestEmailDialogOpen} onOpenChange={setIsTestEmailDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full h-16 text-lg">
+                  <Button variant="outline" className="w-full h-14 text-base">
                     <div className="flex items-center justify-center gap-3">
-                      <Mail className="h-6 w-6" />
+                      <Mail className="h-5 w-5" />
                       <span>发送测试邮件</span>
                     </div>
                   </Button>
