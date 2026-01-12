@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, Shield } from "lucide-react";
 
@@ -13,6 +13,11 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // 设置页面标题
+  useEffect(() => {
+    document.title = "登录 - 每日签到应用 | 个人安全提醒系统";
+  }, []);
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: () => {
@@ -38,9 +43,10 @@ export default function Login() {
               <Shield className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">欢迎回来</CardTitle>
+          <h1 className="text-2xl font-bold">每日签到应用</h1>
+          <h2 className="text-lg text-muted-foreground">登录您的账户</h2>
           <CardDescription>
-            登录您的每日签到账户
+            安全签到，守护您的每一天
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

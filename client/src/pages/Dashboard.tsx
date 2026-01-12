@@ -43,6 +43,11 @@ export default function Dashboard() {
     },
   });
 
+  // 设置页面标题
+  useEffect(() => {
+    document.title = "每日签到 - 个人安全提醒与紧急联系人管理系统";
+  }, []);
+
   // 未登录时重定向到登录页
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -109,7 +114,8 @@ export default function Dashboard() {
           {/* 签到卡片 */}
           <Card className="shadow-lg">
             <CardHeader className="text-center pb-2">
-              <CardTitle className="text-2xl">每日签到</CardTitle>
+              <h1 className="text-2xl font-bold">每日签到</h1>
+              <h2 className="text-lg text-muted-foreground mt-1">个人安全提醒系统</h2>
               <CardDescription>
                 每天签到一次，让关心你的人安心
               </CardDescription>

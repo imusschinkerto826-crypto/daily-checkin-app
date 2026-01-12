@@ -71,3 +71,17 @@
 
 ## 版本同步
 - [x] 修复发布版本同步问题
+
+## SEO 优化
+- [x] 添加页面关键词
+- [x] 添加 H1 标题
+- [x] 添加 H2 标题
+- [x] 优化页面标题（30-60 字符）
+- [x] 添加页面描述（50-160 字符）
+
+## 移除 Manus 相关内容
+- [x] 查找并移除所有 Manus 相关代码和标志
+  - 移除 index.html 中的 manus.space 域名引用
+  - 删除 ManusDialog.tsx 组件
+  - 将 localStorage key 从 manus-runtime-user-info 改为 app-user-info
+  - 将测试文件中的 loginMethod 从 manus 改为 password

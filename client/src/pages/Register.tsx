@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, CheckCircle2, Shield } from "lucide-react";
 
@@ -33,6 +33,11 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // 设置页面标题
+  useEffect(() => {
+    document.title = "注册 - 每日签到应用 | 创建您的安全账户";
+  }, []);
 
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: () => {
@@ -76,9 +81,10 @@ export default function Register() {
               <Shield className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">创建账户</CardTitle>
+          <h1 className="text-2xl font-bold">每日签到应用</h1>
+          <h2 className="text-lg text-muted-foreground">创建您的账户</h2>
           <CardDescription>
-            注册每日签到应用，守护您的安全
+            注册后即可开始每日签到，守护您的安全
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
