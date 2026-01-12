@@ -17,20 +17,23 @@ vi.mock("../db", () => ({
   getStreakDays: vi.fn(),
   getUserByOpenId: vi.fn(),
   upsertUser: vi.fn(),
+  updateReminderSettings: vi.fn(),
+  getUsersNeedingReminder: vi.fn(),
 }));
 
-// Mock auth module with partial mock
-vi.mock("./auth", async (importOriginal) => {
-  const actual = await importOriginal() as Record<string, unknown>;
-  return {
-    ...actual,
-    verifyToken: vi.fn(),
-  };
-});
+// Mock utils/auth module
+const mockGetCurrentUser = vi.fn();
+
+vi.mock("../utils/auth", () => ({
+  getCurrentUser: (...args: any[]) => mockGetCurrentUser(...args),
+  verifyToken: vi.fn(),
+  generateToken: vi.fn(),
+  parseCookies: vi.fn(),
+  tryGetCurrentUser: vi.fn(),
+}));
 
 import { appRouter } from "../routers";
 import type { TrpcContext } from "../_core/context";
-import { verifyToken } from "./auth";
 import * as db from "../db";
 
 function createMockContext(token?: string): TrpcContext {
@@ -57,8 +60,7 @@ describe("contacts.list", () => {
   it("should return contacts list", async () => {
     const ctx = createMockContext("valid-token");
     
-    vi.mocked(verifyToken).mockResolvedValue({ userId: 1, username: "testuser" });
-    vi.mocked(db.getUserById).mockResolvedValue({
+    mockGetCurrentUser.mockResolvedValue({
       id: 1,
       username: "testuser",
       email: null,
@@ -97,8 +99,7 @@ describe("contacts.list", () => {
   it("should indicate cannot add more when at limit", async () => {
     const ctx = createMockContext("valid-token");
     
-    vi.mocked(verifyToken).mockResolvedValue({ userId: 1, username: "testuser" });
-    vi.mocked(db.getUserById).mockResolvedValue({
+    mockGetCurrentUser.mockResolvedValue({
       id: 1,
       username: "testuser",
       email: null,
@@ -129,8 +130,7 @@ describe("contacts.add", () => {
   it("should add a new contact", async () => {
     const ctx = createMockContext("valid-token");
     
-    vi.mocked(verifyToken).mockResolvedValue({ userId: 1, username: "testuser" });
-    vi.mocked(db.getUserById).mockResolvedValue({
+    mockGetCurrentUser.mockResolvedValue({
       id: 1,
       username: "testuser",
       email: null,
@@ -162,8 +162,7 @@ describe("contacts.add", () => {
   it("should reject when at contact limit", async () => {
     const ctx = createMockContext("valid-token");
     
-    vi.mocked(verifyToken).mockResolvedValue({ userId: 1, username: "testuser" });
-    vi.mocked(db.getUserById).mockResolvedValue({
+    mockGetCurrentUser.mockResolvedValue({
       id: 1,
       username: "testuser",
       email: null,
@@ -187,8 +186,7 @@ describe("contacts.add", () => {
   it("should validate email format", async () => {
     const ctx = createMockContext("valid-token");
     
-    vi.mocked(verifyToken).mockResolvedValue({ userId: 1, username: "testuser" });
-    vi.mocked(db.getUserById).mockResolvedValue({
+    mockGetCurrentUser.mockResolvedValue({
       id: 1,
       username: "testuser",
       email: null,
@@ -217,8 +215,7 @@ describe("contacts.delete", () => {
   it("should delete a contact", async () => {
     const ctx = createMockContext("valid-token");
     
-    vi.mocked(verifyToken).mockResolvedValue({ userId: 1, username: "testuser" });
-    vi.mocked(db.getUserById).mockResolvedValue({
+    mockGetCurrentUser.mockResolvedValue({
       id: 1,
       username: "testuser",
       email: null,
@@ -246,8 +243,7 @@ describe("contacts.delete", () => {
   it("should reject deleting non-existent contact", async () => {
     const ctx = createMockContext("valid-token");
     
-    vi.mocked(verifyToken).mockResolvedValue({ userId: 1, username: "testuser" });
-    vi.mocked(db.getUserById).mockResolvedValue({
+    mockGetCurrentUser.mockResolvedValue({
       id: 1,
       username: "testuser",
       email: null,
@@ -266,8 +262,7 @@ describe("contacts.delete", () => {
   it("should reject deleting another user's contact", async () => {
     const ctx = createMockContext("valid-token");
     
-    vi.mocked(verifyToken).mockResolvedValue({ userId: 1, username: "testuser" });
-    vi.mocked(db.getUserById).mockResolvedValue({
+    mockGetCurrentUser.mockResolvedValue({
       id: 1,
       username: "testuser",
       email: null,

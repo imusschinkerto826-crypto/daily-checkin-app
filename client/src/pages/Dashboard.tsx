@@ -169,13 +169,9 @@ export default function Dashboard() {
             {/* 紧急联系人入口 */}
             <Card className="shadow-lg">
               <CardContent className="p-4">
-                <Link href="/contacts">
-                  <Button variant="outline" className="w-full h-20 flex-col gap-2" asChild>
-                    <div>
-                      <Users className="h-6 w-6" />
-                      <span className="text-sm">紧急联系人</span>
-                    </div>
-                  </Button>
+                <Link href="/contacts" className="flex flex-col items-center justify-center gap-2 w-full h-20 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <Users className="h-6 w-6" />
+                  <span className="text-sm">紧急联系人</span>
                 </Link>
               </CardContent>
             </Card>
@@ -183,13 +179,9 @@ export default function Dashboard() {
             {/* 签到提醒设置入口 */}
             <Card className="shadow-lg">
               <CardContent className="p-4">
-                <Link href="/settings">
-                  <Button variant="outline" className="w-full h-20 flex-col gap-2" asChild>
-                    <div>
-                      <Bell className="h-6 w-6" />
-                      <span className="text-sm">签到提醒</span>
-                    </div>
-                  </Button>
+                <Link href="/settings" className="flex flex-col items-center justify-center gap-2 w-full h-20 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <Bell className="h-6 w-6" />
+                  <span className="text-sm">签到提醒</span>
                 </Link>
               </CardContent>
             </Card>

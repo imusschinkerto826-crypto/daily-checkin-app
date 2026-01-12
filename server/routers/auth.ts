@@ -1,15 +1,16 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import bcrypt from "bcrypt";
-import { SignJWT, jwtVerify } from "jose";
-import { publicProcedure, router, protectedProcedure } from "../_core/trpc";
+import { publicProcedure, router } from "../_core/trpc";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "../_core/cookies";
 import * as db from "../db";
-import { ENV } from "../_core/env";
+import { generateToken, verifyToken, parseCookies, getCurrentUser } from "../utils/auth";
+
+// 重新导出 verifyToken 以保持向后兼容
+export { verifyToken } from "../utils/auth";
 
 const SALT_ROUNDS = 10;
-const JWT_SECRET = new TextEncoder().encode(ENV.cookieSecret || "default-secret-change-me");
 
 // 注册输入验证
 const registerSchema = z.object({
@@ -34,71 +35,6 @@ const changePasswordSchema = z.object({
   message: "两次输入的密码不一致",
   path: ["confirmPassword"],
 });
-
-/**
- * 生成 JWT Token
- */
-async function generateToken(userId: number, username: string): Promise<string> {
-  return new SignJWT({ userId, username })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(JWT_SECRET);
-}
-
-/**
- * 验证 JWT Token
- */
-export async function verifyToken(token: string): Promise<{ userId: number; username: string } | null> {
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return {
-      userId: payload.userId as number,
-      username: payload.username as string,
-    };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * 从请求中获取当前用户
- */
-async function getCurrentUser(ctx: any) {
-  const cookies = ctx.req.headers.cookie || "";
-  const cookieMap = new Map(
-    cookies.split(";").map((c: string) => {
-      const [key, ...val] = c.trim().split("=");
-      return [key, val.join("=")];
-    })
-  );
-  const token = cookieMap.get(COOKIE_NAME);
-
-  if (!token) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "请先登录",
-    });
-  }
-
-  const payload = await verifyToken(token as string);
-  if (!payload) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "登录已过期，请重新登录",
-    });
-  }
-
-  const user = await db.getUserById(payload.userId);
-  if (!user) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "用户不存在",
-    });
-  }
-
-  return user;
-}
 
 export const authRouter = router({
   /**
@@ -196,12 +132,7 @@ export const authRouter = router({
   me: publicProcedure.query(async ({ ctx }) => {
     // 从 Cookie 获取 Token
     const cookies = ctx.req.headers.cookie || "";
-    const cookieMap = new Map(
-      cookies.split(";").map((c) => {
-        const [key, ...val] = c.trim().split("=");
-        return [key, val.join("=")];
-      })
-    );
+    const cookieMap = parseCookies(cookies);
     const token = cookieMap.get(COOKIE_NAME);
 
     if (!token) {

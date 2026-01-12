@@ -25,16 +25,17 @@ vi.mock("../db", () => ({
   getUsersNeedingReminder: vi.fn(),
 }));
 
-// Mock verifyToken
+// Mock utils/auth module
 const mockVerifyToken = vi.fn();
+const mockGetCurrentUser = vi.fn();
 
-vi.mock("./auth", async (importOriginal) => {
-  const actual = await importOriginal() as any;
-  return {
-    ...actual,
-    verifyToken: (...args: any[]) => mockVerifyToken(...args),
-  };
-});
+vi.mock("../utils/auth", () => ({
+  verifyToken: (...args: any[]) => mockVerifyToken(...args),
+  getCurrentUser: (...args: any[]) => mockGetCurrentUser(...args),
+  generateToken: vi.fn(),
+  parseCookies: vi.fn(),
+  tryGetCurrentUser: vi.fn(),
+}));
 
 import { appRouter } from "../routers";
 import type { TrpcContext } from "../_core/context";
@@ -88,8 +89,7 @@ describe("reminder router", () => {
 
   describe("getSettings", () => {
     it("should return reminder settings for authenticated user", async () => {
-      mockVerifyToken.mockResolvedValue({ userId: 1 });
-      mockGetUserById.mockResolvedValue(mockUser);
+      mockGetCurrentUser.mockResolvedValue(mockUser);
 
       const ctx = createMockContext("valid-token");
       const caller = appRouter.createCaller(ctx);
@@ -104,6 +104,8 @@ describe("reminder router", () => {
     });
 
     it("should throw error for unauthenticated user", async () => {
+      mockGetCurrentUser.mockRejectedValue(new Error("请先登录"));
+
       const ctx = createMockContext();
       const caller = appRouter.createCaller(ctx);
 
@@ -120,8 +122,7 @@ describe("reminder router", () => {
         reminderHour: 9,
       };
 
-      mockVerifyToken.mockResolvedValue({ userId: 1 });
-      mockGetUserById.mockResolvedValue(mockUser);
+      mockGetCurrentUser.mockResolvedValue(mockUser);
       mockUpdateReminderSettings.mockResolvedValue(updatedUser);
 
       const ctx = createMockContext("valid-token");
@@ -148,8 +149,7 @@ describe("reminder router", () => {
         reminderHour: 8,
       };
 
-      mockVerifyToken.mockResolvedValue({ userId: 1 });
-      mockGetUserById.mockResolvedValue(mockUser);
+      mockGetCurrentUser.mockResolvedValue(mockUser);
       mockUpdateReminderSettings.mockResolvedValue(updatedUser);
 
       const ctx = createMockContext("valid-token");
@@ -164,8 +164,7 @@ describe("reminder router", () => {
     });
 
     it("should throw error when enabling reminder without email", async () => {
-      mockVerifyToken.mockResolvedValue({ userId: 1 });
-      mockGetUserById.mockResolvedValue(mockUser);
+      mockGetCurrentUser.mockResolvedValue(mockUser);
 
       const ctx = createMockContext("valid-token");
       const caller = appRouter.createCaller(ctx);
@@ -179,8 +178,7 @@ describe("reminder router", () => {
     });
 
     it("should validate email format", async () => {
-      mockVerifyToken.mockResolvedValue({ userId: 1 });
-      mockGetUserById.mockResolvedValue(mockUser);
+      mockGetCurrentUser.mockResolvedValue(mockUser);
 
       const ctx = createMockContext("valid-token");
       const caller = appRouter.createCaller(ctx);
@@ -194,8 +192,7 @@ describe("reminder router", () => {
     });
 
     it("should validate hour range", async () => {
-      mockVerifyToken.mockResolvedValue({ userId: 1 });
-      mockGetUserById.mockResolvedValue(mockUser);
+      mockGetCurrentUser.mockResolvedValue(mockUser);
 
       const ctx = createMockContext("valid-token");
       const caller = appRouter.createCaller(ctx);

@@ -55,3 +55,16 @@
 - [x] 添加修改密码后端 API
 - [x] 在设置页面添加修改密码表单
 - [x] 编写相关测试
+
+## Bug 修复
+- [x] 修复设置页面返回时出现的 NotFoundError: removeChild 错误
+  - 移除 Link 内部嵌套的 Button 组件
+  - 直接在 Link 上应用样式
+
+## 代码审查与 Bug 修复
+- [x] 检查前端组件代码
+- [x] 检查后端 API 代码
+- [x] 修复发现的问题
+  - 修复 Link 和 Button 嵌套导致的 DOM 结构问题
+  - 抽取公共 getCurrentUser 函数到 utils/auth.ts
+  - 重构所有路由文件使用公共工具函数
