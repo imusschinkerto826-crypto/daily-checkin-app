@@ -5,6 +5,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { authRouter } from "./routers/auth";
 import { checkInsRouter } from "./routers/checkins";
 import { contactsRouter } from "./routers/contacts";
+import { emailRouter } from "./routers/email";
 
 export const appRouter = router({
   system: systemRouter,
@@ -17,6 +18,9 @@ export const appRouter = router({
   
   // 紧急联系人管理
   contacts: contactsRouter,
+  
+  // 邮件功能
+  email: emailRouter,
 });
 
 export type AppRouter = typeof appRouter;

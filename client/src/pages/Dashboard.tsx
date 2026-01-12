@@ -1,15 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, Calendar, Flame, Users, LogOut, Shield } from "lucide-react";
+import { Loader2, CheckCircle2, Calendar, Flame, Users, LogOut, Shield, Mail, Send } from "lucide-react";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user, isLoading: authLoading, isAuthenticated, logout } = useCustomAuth();
+  
+  const [isTestEmailDialogOpen, setIsTestEmailDialogOpen] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
   
   const { data: status, isLoading: statusLoading, refetch: refetchStatus } = trpc.checkIns.status.useQuery(
     undefined,
@@ -23,6 +29,17 @@ export default function Dashboard() {
     },
     onError: (error) => {
       toast.error(error.message || "签到失败，请重试");
+    },
+  });
+
+  const sendTestEmailMutation = trpc.email.sendTest.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setIsTestEmailDialogOpen(false);
+      setTestEmail("");
+    },
+    onError: (error) => {
+      toast.error(error.message || "发送失败，请重试");
     },
   });
 
@@ -53,6 +70,11 @@ export default function Dashboard() {
       month: "long",
       day: "numeric",
     });
+  };
+
+  const handleSendTestEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendTestEmailMutation.mutate({ email: testEmail });
   };
 
   return (
@@ -150,6 +172,70 @@ export default function Dashboard() {
               </Link>
               <p className="text-sm text-muted-foreground text-center mt-3">
                 设置紧急联系人，当您未签到时，他们会收到提醒邮件
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* 测试邮件功能 */}
+          <Card className="shadow-lg">
+            <CardContent className="p-6">
+              <Dialog open={isTestEmailDialogOpen} onOpenChange={setIsTestEmailDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full h-16 text-lg">
+                    <div className="flex items-center justify-center gap-3">
+                      <Mail className="h-6 w-6" />
+                      <span>发送测试邮件</span>
+                    </div>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <form onSubmit={handleSendTestEmail}>
+                    <DialogHeader>
+                      <DialogTitle>发送测试邮件</DialogTitle>
+                      <DialogDescription>
+                        输入邮箱地址，验证邮件服务是否正常工作
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="testEmail">收件邮箱</Label>
+                        <Input
+                          id="testEmail"
+                          type="email"
+                          placeholder="请输入收件邮箱地址"
+                          value={testEmail}
+                          onChange={(e) => setTestEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsTestEmailDialogOpen(false)}
+                      >
+                        取消
+                      </Button>
+                      <Button type="submit" disabled={sendTestEmailMutation.isPending}>
+                        {sendTestEmailMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            发送中...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            发送
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+              <p className="text-sm text-muted-foreground text-center mt-3">
+                测试邮件服务是否正常配置
               </p>
             </CardContent>
           </Card>
