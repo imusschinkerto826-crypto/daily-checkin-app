@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.zeabur.app/zeabur.json",
+  "build": {
+    "type": "nodejs",
+    "build_command": "pnpm install && pnpm build",
+    "start_command": "node dist/index.js"
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
