@@ -1,14 +1,28 @@
-import sgMail from "@sendgrid/mail";
+import nodemailer from "nodemailer";
 
-// 初始化 SendGrid
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@daily-checkin.app";
+// 163 邮箱 SMTP 配置
+const SMTP_HOST = process.env.SMTP_HOST || "smtp.163.com";
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || "465");
+const SMTP_USER = process.env.SMTP_USER || "";
+const SMTP_PASS = process.env.SMTP_PASS || "";
+const FROM_EMAIL = process.env.FROM_EMAIL || SMTP_USER;
 
-if (SENDGRID_API_KEY) {
-  sgMail.setApiKey(SENDGRID_API_KEY);
-  console.log("[Email] SendGrid initialized");
+// 创建邮件传输器
+let transporter: nodemailer.Transporter | null = null;
+
+if (SMTP_USER && SMTP_PASS) {
+  transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465, // true for 465, false for other ports
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    },
+  });
+  console.log(`[Email] SMTP configured with ${SMTP_HOST}:${SMTP_PORT}`);
 } else {
-  console.warn("[Email] SENDGRID_API_KEY not set, email sending will be disabled");
+  console.warn("[Email] SMTP credentials not set, email sending will be disabled");
 }
 
 interface SendEmailParams {
@@ -22,15 +36,15 @@ interface SendEmailParams {
  * 发送邮件
  */
 export async function sendEmail(params: SendEmailParams): Promise<boolean> {
-  if (!SENDGRID_API_KEY) {
-    console.log("[Email] Skipping email (no API key):", params.subject);
+  if (!transporter) {
+    console.log("[Email] Skipping email (no SMTP configured):", params.subject);
     return false;
   }
 
   try {
-    await sgMail.send({
+    await transporter.sendMail({
+      from: `"每日签到应用" <${FROM_EMAIL}>`,
       to: params.to,
-      from: FROM_EMAIL,
       subject: params.subject,
       text: params.text,
       html: params.html || params.text,

@@ -34,4 +34,9 @@
 - [x] 紧急联系人管理测试
 
 ## 部署
-- [ ] 上传代码到 GitHub
+- [x] 上传代码到 GitHub: https://github.com/imusschinkerto826-crypto/daily-checkin-app
+
+
+## 邮件服务更新
+- [x] 将 SendGrid 替换为 163 邮箱 SMTP
+- [x] 配置 SMTP 环境变量
