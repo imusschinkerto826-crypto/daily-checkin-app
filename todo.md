@@ -85,3 +85,13 @@
   - 删除 ManusDialog.tsx 组件
   - 将 localStorage key 从 manus-runtime-user-info 改为 app-user-info
   - 将测试文件中的 loginMethod 从 manus 改为 password
+
+## 代码精简与文档
+- [x] 删除未使用的文件和代码
+  - 删除 AIChatBox.tsx
+  - 删除 DashboardLayout.tsx
+  - 删除 DashboardLayoutSkeleton.tsx
+  - 删除 Map.tsx
+  - 删除 ComponentShowcase.tsx
+- [x] 创建 README.md 文件
+- [ ] 推送到 GitHub
